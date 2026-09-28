@@ -119,6 +119,8 @@ namespace DirectPackageInstaller.Views
 
             Language.Loaded += OnLanguageLoaded;
 
+            btnLanguage.SubmenuOpened += BtnLanguageSubmenuOpened;
+
             ApplyLanguage();
         }
 
@@ -161,19 +163,37 @@ namespace DirectPackageInstaller.Views
             AddLanguageMenu();
         }
 
-        private void AddLanguageMenu()
+        private string? LanguageMenuSignature;
+
+        /// <summary>
+        /// Rebuilds the language sub menu out of the *.ini files currently sitting in
+        /// the language folder. It is also wired to the sub menu opening, so dropping a
+        /// new pack in while the app runs is enough to get it listed, no restart needed.
+        /// The rebuild is skipped when the folder content didn't change, that way the
+        /// sub menu doesn't flicker while it's open.
+        /// </summary>
+        private void AddLanguageMenu(bool Force = false)
         {
+            var Available = Language.Labeled();
+
+            string Signature = string.Join('|', Available.Select(x => x.Key));
+
+            if (!Force && Signature == LanguageMenuSignature)
+                return;
+
+            LanguageMenuSignature = Signature;
+
             btnLanguage.Items.Clear();
 
-            foreach (var Entry in Language.Available)
+            foreach (var Entry in Available)
             {
                 var Item = new MenuItem()
                 {
-                    Header = Entry.NativeName,
-                    Tag = Entry
+                    Header = Entry.Key,
+                    Tag = Entry.Value
                 };
 
-                if (Entry.Name.Equals(Language.Current, StringComparison.OrdinalIgnoreCase))
+                if (Entry.Value.Name.Equals(Language.Current, StringComparison.OrdinalIgnoreCase))
                     Item.Classes.Add("SelectedLanguage");
 
                 Item.Click += BtnLanguageOnClick;
@@ -183,6 +203,8 @@ namespace DirectPackageInstaller.Views
 
             btnLanguage.IsVisible = btnLanguage.Items.Count > 0;
         }
+
+        private void BtnLanguageSubmenuOpened(object? sender, EventArgs e) => AddLanguageMenu();
 
         private void BtnLanguageOnClick(object? sender, RoutedEventArgs e)
         {
@@ -207,6 +229,8 @@ namespace DirectPackageInstaller.Views
             }
 
             ApplyLanguage();
+
+            AddLanguageMenu(true);
 
             switch (btnLoad.Tag as string)
             {
@@ -250,29 +274,14 @@ namespace DirectPackageInstaller.Views
         /// </summary>
         private async Task SelectLanguageAsync()
         {
-            var Available = Language.Available;
+            //Language.Labeled also disambiguates packs sharing a native name.
+            var Available = Language.Labeled();
 
             if (Available.Count <= 1)
                 return;
 
-            //Two packs can share a native name, in that case the pack name is appended
-            //so the entries stay distinguishable, the lookup below stays unambiguous.
-            var Labels = new List<string>();
-            var Entries = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
-            var Taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var Entry in Available)
-            {
-                string Label = Entry.NativeName;
-
-                if (Taken.Contains(Label))
-                    Label = $"{Label} ({Entry.Name})";
-
-                Taken.Add(Label);
-
-                Labels.Add(Label);
-                Entries[Label] = Entry;
-            }
+            var Labels = Available.Select(x => x.Key).ToArray();
+            var Entries = Available.ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
 
             string? Selected = null;
 
@@ -281,7 +290,7 @@ namespace DirectPackageInstaller.Views
                 var ChoiceBox = Extensions.CreateInstance<SelectView>(new SelectViewModel());
                 ((SelectViewModel)ChoiceBox.DataContext).Caption = Language.L("Main.SelectLanguage");
 
-                ChoiceBox.Initialize(null, Labels.ToArray(), (n) =>
+                ChoiceBox.Initialize(null, Labels, (n) =>
                 {
                     Selected = n;
                     SingleView.ReturnView(ChoiceBox);
@@ -291,7 +300,7 @@ namespace DirectPackageInstaller.Views
             }
             else
             {
-                var ChoiceBox = new Select(Labels.ToArray())
+                var ChoiceBox = new Select(Labels)
                 {
                     Caption = Language.L("Main.SelectLanguage"),
                     Title = Language.L("Title.SelectLanguage")

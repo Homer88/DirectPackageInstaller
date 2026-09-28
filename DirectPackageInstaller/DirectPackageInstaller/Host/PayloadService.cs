@@ -114,7 +114,7 @@ namespace DirectPackageInstaller.Host
             await SendTask.Task;
 
             if (!Silent)
-                await MessageBox.ShowAsync("Package Sent!", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                await MessageBox.ShowAsync(Language.L("Msg.PackageSent"), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             return true;
         }
@@ -195,7 +195,7 @@ namespace DirectPackageInstaller.Host
                 catch (Exception ex)
                 {
 #if DEBUG
-                    await MessageBox.ShowAsync("try conn err \n" + ex.ToString());
+                    await MessageBox.ShowAsync(Language.F("Msg.TryConnError", ex));
 #endif
                 }
 
@@ -250,7 +250,7 @@ namespace DirectPackageInstaller.Host
             catch (Exception ex)
             {
 #if DEBUG
-                await MessageBox.ShowAsync("EnsureServer Failed\n" + ex.ToString());
+                await MessageBox.ShowAsync(Language.F("Msg.EnsureServerFailed", ex));
 #endif
                 throw;
             }

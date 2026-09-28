@@ -37,13 +37,13 @@ namespace DirectPackageInstaller.Tasks
         {
             if (string.IsNullOrEmpty(Config.PSIP) || Config.PSIP == "0.0.0.0")
             {
-                await MessageBox.ShowAsync("PS IP not defined, please, type the PS IP in the Options Menu", "PS IP Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                await MessageBox.ShowAsync(Language.L("Msg.PSIPNotDefined"), Language.L("Title.PSIPNotFound"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
             
             if (string.IsNullOrEmpty(Config.PCIP) || Config.PCIP == "0.0.0.0")
             {
-                await MessageBox.ShowAsync("PC IP not defined, please, type your PC LAN IP in the Options Menu", "PS4 IP Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                await MessageBox.ShowAsync(Language.L("Msg.PCIPNotDefined"), Language.L("Title.PCIPNotFound"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
 
@@ -58,7 +58,7 @@ namespace DirectPackageInstaller.Tasks
                 {
                     if (!Config.ProxyDownload)
                     {
-                        var Reply = await MessageBox.ShowAsync("The given URL can't be direct downloaded.\nDo you want to the DirectPackageInstaller act as a server?", "DirectPackageInstaller", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        var Reply = await MessageBox.ShowAsync(Language.L("Msg.NotDirectDownloadable"), "DirectPackageInstaller", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                         if (Reply != DialogResult.Yes)
                             return false;
                     }
@@ -128,7 +128,7 @@ namespace DirectPackageInstaller.Tasks
                     }
 
                     var OriStatus = GetStatus();
-                    await SetStatus("Initializing Decompressor...");
+                    await SetStatus(Language.L("Status.InitializingDecompressor"));
 
                     if (!Retry)
                     {
@@ -194,7 +194,7 @@ namespace DirectPackageInstaller.Tasks
                     break;
 
                 default:
-                    MessageBox.ShowSync("Unexpected Install Method: \n" + InputType.ToString());
+                    MessageBox.ShowSync(Language.F("Msg.UnexpectedInstallMethod", InputType.ToString()));
                     return false;
             }
 
@@ -238,16 +238,16 @@ namespace DirectPackageInstaller.Tasks
                     if (Result.Contains("SUCCESS:"))
                     {
                         if (!Silent)
-                            await MessageBox.ShowAsync("Package Sent!", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            await MessageBox.ShowAsync(Language.L("Msg.PackageSent"), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                         return true;
                     }
                     else
                     {
                         if (Result.Contains("0x80990085"))
-                            Result += "\nVerify if your playstation has free space.";
+                            Result += Language.L("Msg.VerifyFreeSpace");
 
-                        await MessageBox.ShowAsync("Failed:\n" + Result, "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        await MessageBox.ShowAsync(Language.F("Msg.SendFailed", Result), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return false;
                     }
                 }
@@ -270,7 +270,7 @@ namespace DirectPackageInstaller.Tasks
                 }
 
                 await File.WriteAllTextAsync(Path.Combine(App.WorkingDirectory, "DPI-ERROR.log"), ex.ToString());
-                await MessageBox.ShowAsync("Failed:\n" + (Result == null ? ex.ToString() : Result), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                await MessageBox.ShowAsync(Language.F("Msg.SendFailed", Result ?? ex.ToString()), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
@@ -309,16 +309,16 @@ namespace DirectPackageInstaller.Tasks
                 if (Result.Contains("\"success\""))
                 {
                     if (!Silent)
-                        await MessageBox.ShowAsync("Package Sent!", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        await MessageBox.ShowAsync(Language.L("Msg.PackageSent"), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     return true;
                 }
                 else
                 {
                     if (Result.Contains("0x80990085"))
-                        Result += "\nVerify if your playstation has free space.";
+                        Result += Language.L("Msg.VerifyFreeSpace");
 
-                    await MessageBox.ShowAsync("Failed:\n" + Result, "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    await MessageBox.ShowAsync(Language.F("Msg.SendFailed", Result), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return false;
                 }
             }
@@ -340,7 +340,7 @@ namespace DirectPackageInstaller.Tasks
                 }
 
                 await File.WriteAllTextAsync(Path.Combine(App.WorkingDirectory, "DPI-ERROR.log"), ex.ToString());
-                await MessageBox.ShowAsync("Failed:\n" + (Result == null ? ex.ToString() : Result), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                await MessageBox.ShowAsync(Language.F("Msg.SendFailed", Result ?? ex.ToString()), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
@@ -369,7 +369,7 @@ namespace DirectPackageInstaller.Tasks
                 }
                 catch (Exception ex)
                 {
-                    await MessageBox.ShowAsync($"Failed to Open the Http Server\n{ex}", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    await MessageBox.ShowAsync(Language.F("Msg.FailedOpenHttpServer", ex), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }

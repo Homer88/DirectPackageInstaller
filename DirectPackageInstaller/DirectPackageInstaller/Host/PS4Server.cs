@@ -625,7 +625,7 @@ namespace DirectPackageInstaller.Host
             }
             catch (Exception ex)
             {
-                MessageBox.ShowSync("Failed to Register JSON\n" + ex.ToString());
+                MessageBox.ShowSync(Language.F("Msg.FailedRegisterJSON", ex));
                 throw;
             }
         }
