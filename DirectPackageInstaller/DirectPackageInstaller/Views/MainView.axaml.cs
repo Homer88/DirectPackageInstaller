@@ -84,6 +84,7 @@ namespace DirectPackageInstaller.Views
             btnDebirdLinkEnabled = this.Find<MenuItem>("btnDebirdLinkEnabled");
             btnSegmentedDownload = this.Find<MenuItem>("btnSegmentedDownload");
             btnTransferProgress = this.Find<MenuItem>("btnTransferProgress");
+            btnErrorLog = this.Find<MenuItem>("btnErrorLog");
             btnCNLService = this.Find<MenuItem>("btnCNLService");
             btnDHCPService = this.Find<MenuItem>("btnDHCPService");
             btnExit = this.Find<MenuItem>("btnExit");
@@ -97,6 +98,7 @@ namespace DirectPackageInstaller.Views
             btnDebirdLinkEnabled.Click += BtnDebirdLinkEnabledOnClick;
             btnSegmentedDownload.Click += BtnSegmentedDownloadOnClick;
             btnTransferProgress.Click += BtnTransferProgressOnClick;
+            btnErrorLog.Click += BtnErrorLogOnClick;
             btnCNLService.Click += BtnCNLServiceOnClick;
             btnDHCPService.Click += BtnDHCPServiceOnClick;
 
@@ -134,6 +136,7 @@ namespace DirectPackageInstaller.Views
             btnProxyDownload.Header = Language.L("Menu.ProxyDownloads");
             btnSegmentedDownload.Header = Language.L("Menu.SegmentedDownloads");
             btnTransferProgress.Header = Language.L("Menu.TransferProgress");
+            btnErrorLog.Header = Language.L("Menu.ErrorLog");
             btnCNLService.Header = Language.L("Menu.CNLSupport");
             btnDHCPService.Header = Language.L("Menu.DHCPServer");
             btnIPAddress.Header = Language.L("Menu.IPAddress");
@@ -419,6 +422,7 @@ namespace DirectPackageInstaller.Views
             Model.CNLService = App.Config.EnableCNL;
             Model.ProxyMode = App.Config.ProxyDownload;
             Model.ShowTransferProgress = App.Config.ShowTransferProgress;
+            Model.ShowError = App.Config.ShowError;
             Model.UseAllDebrid = App.Config.UseAllDebrid;
             Model.UseDebridLink = App.Config.UseDebridLink;
             Model.SegmentedMode = App.Config.SegmentedDownload;
@@ -916,12 +920,17 @@ namespace DirectPackageInstaller.Views
             }
             catch (Exception ex)
             {
-                await File.WriteAllTextAsync(Path.Combine(App.WorkingDirectory, "DPI-ERROR.log"), ex.ToString());
-                
-                if (ex is not AbortException)
-                    await MessageBox.ShowAsync(ex.ToString(), $"DirectPackageInstaller - {Language.L("Title.Error")}", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                else if (App.Config.ShowError)
-                    await MessageBox.ShowAsync(ex.Message, $"DirectPackageInstaller - {Language.L("Title.Error")}", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                //The type and the code read the same in every language, only the message
+                //behind them comes from the OS. The stack goes to the file, not to the
+                //dialog, it was never meant to be read by a person.
+                var Reason = PS4Server.Error(ex);
+
+                await File.WriteAllTextAsync(Path.Combine(App.WorkingDirectory, "DPI-ERROR.log"), Reason + Environment.NewLine + ex.StackTrace);
+
+                //An abort is what the user asked for, so it stays quiet unless the error
+                //log option is on. Anything else is always reported.
+                if (ex is not AbortException || App.Config.ShowError)
+                    await MessageBox.ShowAsync(Language.F("Msg.UnexpectedError", Reason), $"DirectPackageInstaller - {Language.L("Title.Error")}", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                 IconBox.Source = null;
                 Model.PKGParams?.Clear();
@@ -1037,6 +1046,14 @@ namespace DirectPackageInstaller.Views
                 case "ShowTransferProgress":
                     App.Config.ShowTransferProgress = Model.ShowTransferProgress;
                     break;
+                case "ShowError":
+                    App.Config.ShowError = Model.ShowError;
+                    PS4Server.EnableLog(Model.ShowError);
+
+                    if (Model.ShowError)
+                        await MessageBox.ShowAsync(Language.F("Msg.LogEnabled", Path.Combine(App.WorkingDirectory, "DPIServer.log")), "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    break;
                 case "PS4IP":
                     App.Config.PSIP = Model.PS4IP;
                     break;
@@ -1116,6 +1133,14 @@ namespace DirectPackageInstaller.Views
                 return;
 
             Model.ShowTransferProgress = !Model.ShowTransferProgress;
+        }
+
+        private void BtnErrorLogOnClick(object? sender, RoutedEventArgs e)
+        {
+            if (Model == null)
+                return;
+
+            Model.ShowError = !Model.ShowError;
         }
 
         private void BtnProxyDownloadOnClick(object? sender, RoutedEventArgs e)

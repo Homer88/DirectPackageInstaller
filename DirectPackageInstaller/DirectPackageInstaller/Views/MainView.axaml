@@ -42,6 +42,11 @@
                         <CheckBox BorderThickness="0" IsChecked="{Binding ShowTransferProgress, Mode=TwoWay}"/>
                     </MenuItem.Icon>
                 </MenuItem>
+                <MenuItem Header="Menu.ErrorLog" Name="btnErrorLog" >
+                    <MenuItem.Icon>
+                        <CheckBox BorderThickness="0" IsChecked="{Binding ShowError, Mode=TwoWay}"/>
+                    </MenuItem.Icon>
+                </MenuItem>
                 <MenuItem Header="Menu.CNLSupport" Name="btnCNLService" >
                     <MenuItem.Icon>
                         <CheckBox BorderThickness="0" IsChecked="{Binding CNLService, Mode=TwoWay}"/>

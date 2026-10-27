@@ -149,8 +149,16 @@ namespace DirectPackageInstaller.Tasks
 
                     var DecompressTask = Server.Decompress.Tasks[EntryFileName!];
 
+                    PS4Server.Trace("PRELOAD: waiting {0} bytes from the decompressor", LastResource);
+
                     while (DecompressTask.SafeTotalDecompressed < LastResource)
                     {
+                        if (DecompressTask.Failed || DecompressTask.Error != null)
+                        {
+                            PS4Server.Trace("PRELOAD: the decompressor failed: {0}", PS4Server.Error(DecompressTask.Error) + (DecompressTask.Error == null ? ", it stopped early" : ""));
+                            break;
+                        }
+
                         await SetStatus($"Preloading Compressed PKG... ({(double)DecompressTask.SafeTotalDecompressed / LastResource:P})");
                         await Task.Delay(100);
                     }
@@ -165,13 +173,27 @@ namespace DirectPackageInstaller.Tasks
                     CanSplit = !InputType.HasFlag(Source.DiskCache);
 
                     var CacheTask = Downloader.CreateTask(URL);
-                    
+
+                    PS4Server.Trace("PRELOAD: waiting {0} bytes of {1}", LastResource, URL);
+
                     OriStatus = GetStatus();
                     while (CacheTask.SafeReadyLength < LastResource)
                     {
+                        if (CacheTask.Failed || CacheTask.Error != null)
+                        {
+                            PS4Server.Trace("PRELOAD: the download failed at {0} of {1} bytes: {2}",
+                                CacheTask.SafeReadyLength, CacheTask.SafeLength, PS4Server.Error(CacheTask.Error) + (CacheTask.Error == null ? ", the server stopped sending" : ""));
+
+                            break;
+                        }
+
                         await SetStatus($"Preloading PKG... ({(double)(CacheTask.SafeReadyLength) / LastResource:P})");
                         await Task.Delay(100);
                     }
+
+                    if (CacheTask.SafeReadyLength < LastResource)
+                        PS4Server.Trace("PRELOAD: continuing anyway, {0} of {1} bytes are ready", CacheTask.SafeReadyLength, LastResource);
+
                     await SetStatus(OriStatus);
 
                     URL = $"http://{Config.PCIP}:{ServerPort}/cache/?b64={Convert.ToBase64String(Encoding.UTF8.GetBytes(URL))}";
@@ -201,14 +223,29 @@ namespace DirectPackageInstaller.Tasks
             if (!Config.AutoSplitPKG)
                 CanSplit = false;
 
+            PS4Server.Trace("INSTALL: source {0}, url {1}, split {2}", InputType, URL, CanSplit);
+
             bool OK;
+
+            string Method = "payload";
+
             if (await IPHelper.IsRPIOnline(Config.PSIP))
+            {
+                Method = "RPI";
                 OK = await PushRPI(URL, Config, Silent);
+            }
             else if (await IPHelper.IsEtaHenOnline(Config.PSIP))
+            {
+                Method = "etaHEN";
                 OK = await PushEtaHen(URL, Config, Silent);
+            }
             else
+            {
                 OK = await Payload.SendPKGPayload(Config.PSIP, Config.PCIP, URL, Silent, CanSplit);
-            
+            }
+
+            PS4Server.Trace("INSTALL: {0} handoff {1}, sent: {2}", Method, URL, OK);
+
             return OK;
         }
 
